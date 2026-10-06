@@ -1,5 +1,4 @@
 import "server-only";
-import type { Prisma } from "@/generated/prisma/client";
 import type { OrderStatus, PaymentMethod, PaymentStatus } from "@/generated/prisma/enums";
 import { prisma } from "@/lib/db/prisma";
 import {
@@ -11,7 +10,6 @@ import {
 import { calculateCommission, resolveCommissionBps } from "@/services/commission.service";
 import { checkCoupon } from "@/services/coupon.service";
 import { getPlatformSettings } from "@/services/settings.service";
-import { clearCart } from "@/services/cart.service";
 import { notify } from "@/services/notification.service";
 
 /**

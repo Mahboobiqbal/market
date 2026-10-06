@@ -98,7 +98,6 @@ export type ProductCardRow = Prisma.ProductGetPayload<{ select: typeof productCa
 
 function toCard(row: ProductCardRow): ProductCardData {
   const discount = discountPercent(row.price, row.salePrice);
-  const stock = row.inventory ? row.inventory.quantity - row.inventory.reserved : 0;
   return {
     id: row.id,
     name: row.name,
