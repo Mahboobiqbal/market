@@ -223,6 +223,7 @@ model SellerProfile {
   businessName      String?
   businessType      String?
   cnic              String?
+  phone             String?
   // Optional per-seller commission override (basis points, 1000 = 10%).
   // null = inherit global/category commission rules.
   commissionBps     Int?

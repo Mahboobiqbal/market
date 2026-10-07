@@ -88,3 +88,13 @@ export async function updateAddress(userId: string, id: string, input: AddressIn
 export async function deleteAddress(userId: string, id: string): Promise<void> {
   await prisma.address.deleteMany({ where: { id, userId } });
 }
+
+/** Mark one address as default (clears the rest in the same transaction). */
+export async function setDefaultAddress(userId: string, id: string) {
+  return prisma.$transaction(async (tx) => {
+    const existing = await tx.address.findFirst({ where: { id, userId } });
+    if (!existing) throw new Error("Address not found.");
+    await clearDefault(userId, tx);
+    return tx.address.update({ where: { id }, data: { isDefault: true } });
+  });
+}

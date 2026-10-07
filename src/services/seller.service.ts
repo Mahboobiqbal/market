@@ -1,6 +1,7 @@
 import "server-only";
 import { cache } from "react";
 import { prisma } from "@/lib/db/prisma";
+import { notifyMany } from "@/services/notification.service";
 
 /** Seller dashboard context + aggregates. All numbers come from records. */
 
@@ -308,4 +309,58 @@ export async function getSellerOrderDetail(sellerId: string, orderNumber: string
     },
   });
   return sellerOrder;
+}
+
+/**
+ * Customer -> seller application (spec �8 flow): upserts the profile into
+ * PENDING; admin approval flips User.role to SELLER (admin.service).
+ */
+export async function submitSellerApplication(
+  userId: string,
+  input: { businessName: string; businessType: string; cnic: string; phone: string },
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const profile = await prisma.sellerProfile.findUnique({
+    where: { userId },
+    select: { id: true, applicationStatus: true },
+  });
+
+  if (profile && !["NOT_APPLIED", "REJECTED"].includes(profile.applicationStatus)) {
+    return { ok: false, error: `Your application is already ${profile.applicationStatus.toLowerCase()}.` };
+  }
+
+  await prisma.sellerProfile.upsert({
+    where: { userId },
+    update: {
+      applicationStatus: "PENDING",
+      businessName: input.businessName,
+      businessType: input.businessType,
+      cnic: input.cnic,
+      phone: input.phone,
+      applicationNote: null,
+      reviewedAt: null,
+      reviewedById: null,
+    },
+    create: {
+      userId,
+      applicationStatus: "PENDING",
+      businessName: input.businessName,
+      businessType: input.businessType,
+      cnic: input.cnic,
+      phone: input.phone,
+    },
+  });
+
+  const admins = await prisma.user.findMany({
+    where: { role: "SUPER_ADMIN" },
+    select: { id: true },
+  });
+  if (admins.length > 0) {
+    await notifyMany(
+      admins.map((a) => a.id),
+      "NEW_SELLER_APPLICATION",
+      `New seller application: ${input.businessName}`,
+      { link: "/admin/sellers" },
+    );
+  }
+  return { ok: true };
 }
